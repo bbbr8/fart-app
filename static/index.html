@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Ultimate Fart App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+            color: #333;
+            text-align: center;
+            padding: 40px;
+        }
+        h1 {
+            margin-bottom: 0;
+        }
+        p.subtitle {
+            margin-top: 0;
+            font-style: italic;
+            color: #666;
+        }
+        .button {
+            display: inline-block;
+            margin: 10px;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #ffde59;
+            transition: background-color 0.2s;
+        }
+        .button:hover {
+            background-color: #ffc107;
+        }
+        #counter {
+            margin-top: 20px;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Ultimate Fart App</h1>
+    <p class="subtitle">Because sometimes humor is a gas.</p>
+
+    <button class="button" onclick="playFart('tiny')">Tiny Toot</button>
+    <button class="button" onclick="playFart('mega')">Mega Blast</button>
+    <button class="button" onclick="playFart('random')">Surprise Me</button>
+
+    <div id="counter">Farts triggered: 0</div>
+
+    <script>
+        let count = 0;
+        function updateCounter() {
+            document.getElementById('counter').innerText = 'Farts triggered: ' + count;
+        }
+
+        function playFart(type) {
+            count++;
+            updateCounter();
+
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            // Determine duration and base frequency based on fart type
+            let duration;
+            let baseFreq;
+            if (type === 'tiny') {
+                duration = 0.3 + Math.random() * 0.2;
+                baseFreq = 200 + Math.random() * 100;
+            } else if (type === 'mega') {
+                duration = 1.2 + Math.random() * 0.5;
+                baseFreq = 60 + Math.random() * 40;
+            } else {
+                duration = 0.5 + Math.random();
+                baseFreq = 80 + Math.random() * 220;
+            }
+
+            // Create noise buffer
+            const bufferSize = ctx.sampleRate * duration;
+            const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+            const data = buffer.getChannelData(0);
+
+            for (let i = 0; i < bufferSize; i++) {
+                // Exponentially decay the random noise to simulate a fart
+                data[i] = (Math.random() * 2 - 1) * Math.exp(-3 * i / bufferSize);
+            }
+
+            const noise = ctx.createBufferSource();
+            noise.buffer = buffer;
+
+            // Shape the sound with a low-pass filter to give it different tones
+            const filter = ctx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.value = baseFreq;
+
+            // Slightly vary the filter during playback for more realism
+            const lfo = ctx.createOscillator();
+            lfo.type = 'sine';
+            lfo.frequency.value = 3; // 3 Hz modulates the filter
+            const lfoGain = ctx.createGain();
+            lfoGain.gain.value = baseFreq * 0.1; // amplitude of modulation
+
+            lfo.connect(lfoGain).connect(filter.frequency);
+            lfo.start();
+
+            noise.connect(filter).connect(ctx.destination);
+            noise.start();
+
+            // Stop the LFO after the noise has finished playing
+            noise.onended = () => {
+                lfo.stop();
+                ctx.close();
+            };
+        }
+    </script>
+</body>
+</html>
